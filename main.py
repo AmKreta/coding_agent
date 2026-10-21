@@ -14,7 +14,7 @@ async def main():
             "content": "what's up"
         }
     ]
-    async for event in client.chat_completion(messages, False):
+    async for event in client.chat_completion(messages):
         print(event)
 
 
