@@ -1,9 +1,9 @@
 import asyncio
 from typing import Any, AsyncGenerator
-from openai import AsyncOpenAI, RateLimitError
+from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 import os
 from openai.types.chat import ChatCompletion
-from .response import EventType, StreamEvent, TextDelta, TokenUsage
+from .response import StreamEventType, StreamEvent, TextDelta, TokenUsage
 
 class LLMClient:
     def __init__(self) -> None:
@@ -38,14 +38,15 @@ class LLMClient:
                 else:
                     event = await self._non_stream_response(client, kwargs)
                     yield event
-            except Exception as e:
+                return
+            except (APIConnectionError, APIError, RateLimitError, Exception) as e:
                 if attempt < self._maxRetries:
                     wait_time = 2**attempt
-                    asyncio.sleep(wait_time)
+                    await asyncio.sleep(wait_time)
                 else:
                     yield StreamEvent(
-                        type = EventType.ERROR,
-                        error = str(e.body)
+                        type = StreamEventType.ERROR,
+                        error = str(getattr(e, "body", None) or e)
                     )
 
 
@@ -65,13 +66,12 @@ class LLMClient:
                 )
                 
             yield StreamEvent(
-                type = EventType.TEXT_DELTA if not choice.finish_reason else EventType.MESSAGE_COMPLETE,
+                type = StreamEventType.TEXT_DELTA if not choice.finish_reason else StreamEventType.MESSAGE_COMPLETE,
                 token_usage = usage,
-                text_delta = choice.delta.content,
+                text_delta = TextDelta(content=choice.delta.content),
                 finish_reason = choice.finish_reason
             )
-            
-
+        
 
     async def _non_stream_response(self, client: AsyncOpenAI, kwargs:dict[str, Any]) -> StreamEvent:
         response: ChatCompletion = await client.chat.completions.create(**kwargs)
@@ -91,7 +91,7 @@ class LLMClient:
                 cached_tokens = response.usage.prompt_tokens_details.cached_tokens
             )
         return StreamEvent(
-            type = EventType.MESSAGE_COMPLETE,
+            type = StreamEventType.MESSAGE_COMPLETE,
             token_usage = usage,
             text_delta = text_delta,
             finish_reason = choice.finish_reason 
