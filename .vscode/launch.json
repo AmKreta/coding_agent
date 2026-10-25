@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "prompt",
+            "type": "promptString",
+            "description": "Prompt to send to the agent",
+            "default": "hey buddy, what's up"
+        }
+    ],
+    "configurations": [
+        {
+            "name": "Run agent (main.py)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "args": ["${input:prompt}"],
+            "cwd": "${workspaceFolder}",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "python": "${workspaceFolder}/venv/bin/python",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

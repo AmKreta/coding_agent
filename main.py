@@ -1,7 +1,7 @@
+from __future__ import annotations
 import asyncio
 import sys
 
-from rich.console import Console
 from agent.agent import Agent
 from dotenv import load_dotenv
 import click
@@ -26,6 +26,7 @@ class CLI:
         if not self.agent:
             return None
         assistant_streaming = False
+        final_response: str | None = None
         async for event in self.agent.run(message):
             if event.type == AgentEventType.TEXT_DELTA:
                 content = event.data.get("content", "")
@@ -40,7 +41,10 @@ class CLI:
                     assistant_streaming = False;
             elif event.type == AgentEventType.AGENT_ERROR:
                 error = event.data.get("error");
+                details = event.data.get("details")
                 self.console.print(f"\n[error]Error:{error}[/error]")
+                if details:
+                    self.console.print(f"[muted]{details}[/muted]", markup=True)
         return final_response
 
 @click.command()

@@ -1,9 +1,11 @@
+from __future__ import annotations
 import asyncio
+from rich import print
 from typing import Any, AsyncGenerator
 from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 import os
 from openai.types.chat import ChatCompletion
-from .response import StreamEventType, StreamEvent, TextDelta, TokenUsage
+from llm.response import StreamEventType, StreamEvent, TextDelta, TokenUsage
 
 class LLMClient:
     def __init__(self) -> None:
@@ -18,17 +20,33 @@ class LLMClient:
             )
         return self._client
 
+    def _build_tools(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("parameters", {"type": "object", "properties": {}})
+                }
+            }
+            for tool in tools
+        ]
+
     async def chat_completion(
         self,
         messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         stream: bool = True
     ) -> AsyncGenerator[StreamEvent, None]:
         client = self.get_client();
         kwargs = {
-            "model":"cohere/north-mini-code:free",
+            "model": os.environ.get("AI_MODEL"),
             "messages": messages,
             "stream": stream
         }
+        if tools:
+            kwargs["tools"] = self._build_tools(tools)
         for attempt in range(self._maxRetries+1):
             try:
                 if stream:
@@ -56,6 +74,7 @@ class LLMClient:
         async for chunk in response:
             if not chunk.choices:
                 continue
+            print(chunk)
             choice = chunk.choices[0]
             if hasattr(chunk, "usage") and chunk.usage:
                 usage = TokenUsage(
@@ -64,6 +83,7 @@ class LLMClient:
                     completion_tokens = chunk.usage.completion_tokens,
                     cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
                 )
+
                 
             yield StreamEvent(
                 type = StreamEventType.TEXT_DELTA if not choice.finish_reason else StreamEventType.MESSAGE_COMPLETE,

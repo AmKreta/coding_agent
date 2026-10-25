@@ -13,12 +13,10 @@ class TUI:
         self._console.print()
         self._console.print(Rule(Text("Assistent", style="assistant")))
 
-    
-
-    def stream_assistant_delta(self, content:str):
-        self._console.print(content, end="", markup=False)
-
-    def end_assistant(self) -> None:
+    def end_assistant(self)->None:
         if self._assistant_stream_open:
             self._console.print()
         self._assistant_stream_open = False
+
+    def stream_assistant_delta(self, content:str):
+        self._console.print(content, end="", markup="false")
