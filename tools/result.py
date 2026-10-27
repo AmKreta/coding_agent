@@ -26,3 +26,22 @@ class ToolResult:
             output = output,
             **kwargs
         )
+
+    def to_model_output(self) -> str:
+        if self.success:
+            return self.output
+        else:
+            return f"Error: {self.error}\n\n {self.output}"
+
+@dataclass
+class ToolResultMessage:
+    tool_call_id: str
+    content: str
+    is_error: str
+
+    def to_openai_message(self)->dict[str, Any]:
+        return {
+            "role" : "tool",
+            "tool_call_id": self.tool_call_id,
+            "content": self.content
+        }

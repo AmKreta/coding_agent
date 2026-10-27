@@ -5,12 +5,13 @@ from typing import Any, AsyncGenerator
 from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 import os
 from openai.types.chat import ChatCompletion
-from llm.response import StreamEventType, StreamEvent, TextDelta, TokenUsage
+from llm.response import StreamEventType, StreamEvent, TextDelta, TokenUsage, ToolCallDelta
 
 class LLMClient:
     def __init__(self) -> None:
        self._client: AsyncOpenAI | None = None
        self._maxRetries = 3;
+       self.tool_index: dict[int, ToolCallDelta] = {}
 
     def get_client(self) -> AsyncOpenAI:
         if self._client is None:
@@ -74,7 +75,6 @@ class LLMClient:
         async for chunk in response:
             if not chunk.choices:
                 continue
-            print(chunk)
             choice = chunk.choices[0]
             if hasattr(chunk, "usage") and chunk.usage:
                 usage = TokenUsage(
@@ -83,12 +83,22 @@ class LLMClient:
                     completion_tokens = chunk.usage.completion_tokens,
                     cached_tokens = chunk.usage.prompt_tokens_details.cached_tokens
                 )
-
-                
+                    
             yield StreamEvent(
-                type = StreamEventType.TEXT_DELTA if not choice.finish_reason else StreamEventType.MESSAGE_COMPLETE,
+                type = StreamEventType.TOOLS_Delta if choice.delta.tool_calls 
+                    else StreamEventType.TEXT_DELTA if not choice.finish_reason 
+                    else StreamEventType.MESSAGE_COMPLETE,
                 token_usage = usage,
                 text_delta = TextDelta(content=choice.delta.content),
+                tool_delta= [
+                    ToolCallDelta(
+                        id = tool_call.id,
+                        index = tool_call.index,
+                        name = tool_call.function.name,
+                        arguments_delta = tool_call.function.arguments
+                    )
+                    for tool_call in choice.delta.tool_calls
+                ] if choice.delta.tool_calls else None,
                 finish_reason = choice.finish_reason
             )
         

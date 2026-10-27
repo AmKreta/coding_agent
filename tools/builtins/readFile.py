@@ -7,6 +7,7 @@ from typing import Optional
 from llm.tokenizer import get_token_count, truncate_text
 from tools.baseTool import Tool
 from tools.invocation import ToolInvocation
+from tools.kind import ToolKind
 from tools.result import ToolResult
 from utils.path import is_binary_file, resolve_path
 from utils.storage import byte_to_mega_byte
@@ -23,6 +24,7 @@ class ReadFileParameters(BaseModel):
 
 class ReadFileTool(Tool):
     name="read_file"
+    kind=ToolKind.READ
     description="""
         Read the file content of a text file. Returns the file content with line numbers.
         For large files use offset and limit to read specific portions.
@@ -30,7 +32,7 @@ class ReadFileTool(Tool):
     """
     schema = ReadFileParameters
 
-    async def execute(self, invocation: ToolInvocation):
+    async def execute(self, invocation: ToolInvocation)-> ToolResult:
         params = ReadFileParameters(**invocation.params)
         path = resolve_path(invocation.cwd, params.path)
 

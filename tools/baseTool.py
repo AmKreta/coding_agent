@@ -5,6 +5,7 @@ from pydantic import BaseModel, ValidationError
 from pydantic.json_schema import model_json_schema
 
 from tools.confirmation import ToolConfirmation
+from tools.result import ToolResult
 from .invocation import ToolInvocation
 from .kind import ToolKind
 
@@ -21,7 +22,7 @@ class Tool(abc.ABC):
         raise NotImplementedError("tool must define schema")
     
     @abc.abstractmethod
-    async def execute(self, invocation: ToolInvocation):
+    async def execute(self, invocation: ToolInvocation)-> ToolResult:
         """defines what should happen when the tool is executed"""
         pass
 

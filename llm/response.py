@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 @dataclass
@@ -9,8 +9,16 @@ class TextDelta:
     def __str__(self) -> str:
         return self.content
 
+@dataclass
+class ToolCallDelta:
+    id: str | None
+    index: int | None
+    name: str | None
+    arguments_delta: str | None
+
 class StreamEventType(str, Enum):
     TEXT_DELTA = "text_delta"
+    TOOLS_Delta = "tools_delta"
     MESSAGE_COMPLETE = "message_complete"
     ERROR = "error"
 
@@ -34,6 +42,7 @@ class TokenUsage:
 class StreamEvent:
     type: StreamEventType
     text_delta: TextDelta | None = None
+    tool_delta: list[ToolCallDelta] | None = None
     error: str | None = None
     finish_reason: str | None = None
     token_usage: TokenUsage | None = None

@@ -39,6 +39,24 @@ class CLI:
                 if assistant_streaming:
                     self.tui.end_assistant()
                     assistant_streaming = False;
+            elif event.type == AgentEventType.TOOL_CALL_START:
+                self.tui.tool_call_start(
+                    name=event.data.get("name", "unknown"),
+                    call_id=event.data.get("call_id"),
+                    arguments=event.data.get("params"),
+                    tool_kind=event.data.get("tool_kind")
+                )
+            elif event.type == AgentEventType.TOOL_CALL_COMPLETE:
+                self.tui.tool_call_end(
+                    name=event.data.get("name", "unknown"),
+                    call_id=event.data.get("call_id"),
+                    tool_kind=event.data.get("tool_kind"),
+                    output=event.data.get("output", ""),
+                    success=event.data.get("success", False),
+                    error=event.data.get("error"),
+                    metadata=event.data.get("metadata", {}),
+                    truncated=event.data.get("truncated", False)
+                )
             elif event.type == AgentEventType.AGENT_ERROR:
                 error = event.data.get("error");
                 details = event.data.get("details")
@@ -53,6 +71,6 @@ def main(prompt: str):
     cli = CLI()
     res = asyncio.run(cli.run_single(prompt))
     if res is None:
-        sys.exit(1)
+        sys.exit(0)
 
 main()

@@ -41,7 +41,7 @@ class ToolRegistry:
     def get_schemas(self):
         return [tool.to_openai_schema() for tool in self.get_tools()]
 
-    async def invoke(self, name: str, params: dict[str, Any], cwd: Path | None, **kwargs):
+    async def invoke(self, name: str, params: dict[str, Any], cwd: Path | None, **kwargs)->ToolResult:
         tool = self.get(name);
         if not tool:
             return ToolResult.error_result(
